@@ -1,0 +1,82 @@
+/* Estilos para la barra de navegación */
+.navbar {
+  background-color: white;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.navbar-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.navbar-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+}
+
+.navbar-button:hover {
+  text-decoration: underline;
+}
+
+.navbar-button.facturar {
+  color: #2563eb;
+}
+
+.navbar-button.notas {
+  color: #059669;
+}
+
+.navbar-button.caja {
+  color: #7c3aed;
+}
+
+.navbar-button.logout {
+  color: #dc2626;
+}
+
+/* Efectos adicionales para mejorar la interacción */
+.navbar-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.navbar-button:active {
+  transform: translateY(1px);
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 640px) {
+  .navbar-container {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .navbar-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
