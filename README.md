@@ -1,16 +1,22 @@
-# React + Vite
+El sistema de facturación integrado a FACDIN-API permite generar comprobantes fiscales a través de una aplicación web que cumple con todos los requisitos legales establecidos por el SENIAT. Cada cliente cuenta con una apiKey única y autenticación mediante JWT, lo que garantiza una integración segura y personalizada. Las facturas se almacenan de forma inviolable: al momento de ser registradas en la base de datos, se genera un hash único que certifica su originalidad. Si una factura es modificada por medios externos, el sistema detecta la alteración mediante el hash, permitiendo así un seguimiento confiable y transparente de todos los registros.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ventajas del sistema FACDIN-API
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Funcionalidad	💡 Beneficio
+🔐Autenticación con apiKey y JWT
+  Seguridad personalizada por cliente
+📄Cumplimiento SENIAT	    
+  Facturación legal y confiable
+🧩Integración vía API	   
+  Compatible con sistemas existentes
+🧬Generación de hash único	
+  Protección contra alteraciones
+📁Almacenamiento seguro	Resguardo
+  inviolable de la información
+🔍Trazabilidad de registros
+  seguimiento y auditoría eficiente
+⚙️Automatización del proceso
+  Ahorro de tiempo y reducción de errores
+🌐Acceso web	
+  disponibilidad desde cualquier dispositivo
