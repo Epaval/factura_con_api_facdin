@@ -180,6 +180,8 @@ export default function Login() {
             Tu información está protegida
           </p>
         </div>
+       
+
       </div>
     </div>
   );

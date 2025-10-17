@@ -6,6 +6,8 @@ import Facturacion from './components/Facturacion';
 import NotasCredito from './components/NotasCredito';
 import CajaControl from './components/CajaControl';
 import Navbar from './components/Navbar';
+import RegistrarEmpleado from './components/RegistrarEmpleado';
+import RegistrarPrimerAdmin from './components/RegistrarPrimerAdmin';
 import './App.css';
 
 // Componente para verificar autenticación
@@ -55,6 +57,8 @@ const router = createBrowserRouter([
       { path: "/facturacion", element: <Facturacion /> },
       { path: "/notas", element: <NotasCredito /> },
       { path: "/caja", element: <CajaControl /> },
+      { path: "/registrar-primer-admin", element: <RegistrarPrimerAdmin />},
+      { path: "/registrar-empleado", element: <RegistrarEmpleado />}
     ],
   },
   {
