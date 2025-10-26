@@ -274,3 +274,123 @@
     flex-direction: column;
   }
 }
+
+/* Añadir a tu CSS existente */
+.cliente-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  border-left: 4px solid #3b82f6;
+}
+
+.cliente-section h3 {
+  color: #1e40af;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.form-grid > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-grid label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.detalle-row {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 1fr 1fr 0.1fr;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+}
+
+.detalle-row > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.detalle-row label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.total-line {
+  font-weight: 600;
+  color: #1f2937;
+  padding: 0.5rem;
+  background: #e0f2fe;
+  border-radius: 0.25rem;
+  text-align: center;
+}
+
+.remove-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  height: 2.5rem;
+  width: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.add-detalle-btn {
+  padding: 0.75rem 1.5rem;
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.resumen-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.resumen-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #d1fae5;
+}
+
+.resumen-item.total {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #065f46;
+  border-bottom: none;
+}
+
+@media (max-width: 768px) {
+  .detalle-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

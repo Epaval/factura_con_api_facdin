@@ -5,27 +5,81 @@ export default function Dashboard() {
   const [cajaAbierta, setCajaAbierta] = useState(false);
   const [ultimasFacturas, setUltimasFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pagina, setPagina] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [busqueda, setBusqueda] = useState('');
+  const [detalleModal, setDetalleModal] = useState(null);
+  const [formEmpleado, setFormEmpleado] = useState({
+    nombre: '',
+    ficha: '',
+    ci: '',
+    rol: 'asesor',
+    password: '',
+    email: ''
+  });
+  const [mostrarFormEmpleado, setMostrarFormEmpleado] = useState(false);
+
+  const LIMIT = 5;
 
   useEffect(() => {
     const cajaData = localStorage.getItem('cajaData');
     setCajaAbierta(!!cajaData);
     cargarUltimasFacturas();
-  }, []);
+  }, [pagina, busqueda]);
 
   const cargarUltimasFacturas = async () => {
     try {
-      // Usar la api configurada en lugar de fetch directo
-      const res = await api.get('/facturas/recientes');
-      setUltimasFacturas(res.data);
+      const offset = (pagina - 1) * LIMIT;
+      const res = await api.get(`/facturas/recientes?limit=${LIMIT}&offset=${offset}&search=${busqueda}`);
+      setUltimasFacturas(res.data.data);
+      setTotal(res.data.total);
     } catch (err) {
-      console.log('Usando datos de demo para facturas');
-      setUltimasFacturas([
-        { id: 1, numero: 'F00000001', cliente: 'Cliente Demo', total: '116.00', fecha: new Date().toLocaleDateString() },
-        { id: 2, numero: 'F00000002', cliente: 'Empresa XYZ', total: '285.50', fecha: new Date().toLocaleDateString() }
-      ]);
+      console.error('Error al cargar facturas:', err);
+      setUltimasFacturas([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
+  };
+
+  const abrirDetalle = async (facturaId) => {
+    try {
+      const res = await api.get(`/facturas/detalle/${facturaId}`);
+      setDetalleModal(res.data);
+    } catch (err) {
+      console.error('Error al cargar detalle:', err);
+    }
+  };
+
+  const cerrarDetalle = () => {
+    setDetalleModal(null);
+  };
+
+  const totalPaginas = Math.ceil(total / LIMIT);
+  const tienePaginaAnterior = pagina > 1;
+  const tienePaginaSiguiente = pagina < totalPaginas;
+
+  const registrarEmpleado = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post('/usuarios/registrar', formEmpleado);
+      alert(res.data.message);
+      setFormEmpleado({
+        nombre: '',
+        ficha: '',
+        ci: '',
+        rol: 'asesor',
+        password: '',
+        email: ''
+      });
+      setMostrarFormEmpleado(false);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Error al registrar empleado');
+    }
+  };
+
+  const cerrarModalEmpleado = () => {
+    setMostrarFormEmpleado(false);
   };
 
   return (
@@ -90,6 +144,17 @@ export default function Dashboard() {
           </button>
 
           <button
+            onClick={() => setMostrarFormEmpleado(true)}
+            className="action-button blue"
+          >
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            <h3>Registrar Empleado</h3>
+            <p>Agregar nuevo empleado</p>
+          </button>
+
+          <button
             onClick={() => window.location.href = '/notas'}
             className="action-button green"
           >
@@ -113,49 +178,242 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* Modal de Registro de Empleado */}
+        {mostrarFormEmpleado && (
+          <div className="modal-overlay" onClick={cerrarModalEmpleado}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Registrar Nuevo Empleado</h3>
+                <button className="close-btn" onClick={cerrarModalEmpleado}>✕</button>
+              </div>
+              
+              <div className="modal-body">
+                <form onSubmit={registrarEmpleado} className="empleado-form">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="nombre">Nombre Completo</label>
+                      <input
+                        id="nombre"
+                        type="text"
+                        value={formEmpleado.nombre}
+                        onChange={(e) => setFormEmpleado({...formEmpleado, nombre: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="ficha">Ficha</label>
+                      <input
+                        id="ficha"
+                        type="text"
+                        value={formEmpleado.ficha}
+                        onChange={(e) => setFormEmpleado({...formEmpleado, ficha: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="ci">Cédula de Identidad</label>
+                      <input
+                        id="ci"
+                        type="text"
+                        value={formEmpleado.ci}
+                        onChange={(e) => setFormEmpleado({...formEmpleado, ci: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="email">Email</label>
+                      <input
+                        id="email"
+                        type="email"
+                        value={formEmpleado.email}
+                        onChange={(e) => setFormEmpleado({...formEmpleado, email: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="rol">Rol</label>
+                      <select
+                        id="rol"
+                        value={formEmpleado.rol}
+                        onChange={(e) => setFormEmpleado({...formEmpleado, rol: e.target.value})}
+                        required
+                      >
+                        <option value="asesor">Asesor</option>
+                        <option value="ga">Gerente de Área (GA)</option>
+                        <option value="gae">Gerente de Área Especializado (GAE)</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="password">Contraseña</label>
+                      <input
+                        id="password"
+                        type="password"
+                        value={formEmpleado.password}
+                        onChange={(e) => setFormEmpleado({...formEmpleado, password: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-actions">
+                    <button type="submit" className="submit-btn">Registrar Empleado</button>
+                    <button
+                      type="button"
+                      className="cancel-btn"
+                      onClick={cerrarModalEmpleado}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Últimas Facturas */}
         <div className="facturas-container">
           <div className="facturas-header">
             <h2>Últimas Facturas Emitidas</h2>
-            <p>Historial de las últimas transacciones</p>
+            <div className="facturas-controls">
+              <input
+                type="text"
+                placeholder="Buscar por número o cliente..."
+                value={busqueda}
+                onChange={(e) => {
+                  setBusqueda(e.target.value);
+                  setPagina(1); // Reiniciar a primera página al buscar
+                }}
+                className="search-input"
+              />
+            </div>
           </div>
+          
           <div className="facturas-table-container">
             {loading ? (
               <div className="loading-spinner">
                 <div className="spinner"></div>
               </div>
             ) : (
-              <table className="facturas-table">
-                <thead>
-                  <tr>
-                    <th>Número</th>
-                    <th>Cliente</th>
-                    <th>Total</th>
-                    <th>Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ultimasFacturas.length > 0 ? (
-                    ultimasFacturas.map((factura) => (
-                      <tr key={factura.id}>
-                        <td className="factura-numero">{factura.numero}</td>
-                        <td className="factura-cliente">{factura.cliente}</td>
-                        <td className="factura-total">${factura.total}</td>
-                        <td className="factura-fecha">{factura.fecha}</td>
-                      </tr>
-                    ))
-                  ) : (
+              <>
+                <table className="facturas-table">
+                  <thead>
                     <tr>
-                      <td colSpan="4" className="no-facturas">
-                        No se han emitido facturas aún.
-                      </td>
+                      <th>Número</th>
+                      <th>Cliente</th>
+                      <th>Total</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {ultimasFacturas.length > 0 ? (
+                      ultimasFacturas.map((factura) => (
+                        <tr key={factura.id}>
+                          <td className="factura-numero">
+                            <button 
+                              onClick={() => abrirDetalle(factura.id)}
+                              className="detalle-btn"
+                            >
+                              {factura.numero}
+                            </button>
+                          </td>
+                          <td className="factura-cliente">{factura.cliente}</td>
+                          <td className="factura-total">${factura.total}</td>
+                          <td className="factura-fecha">{factura.fecha}</td>
+                          <td className="factura-acciones">
+                            <button 
+                              onClick={() => abrirDetalle(factura.id)}
+                              className="detalle-btn"
+                            >
+                              Ver Detalle
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="no-facturas">
+                          No se han emitido facturas aún.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+                
+                {/* Paginación */}
+                <div className="pagination">
+                  <button 
+                    onClick={() => setPagina(pagina - 1)}
+                    disabled={!tienePaginaAnterior}
+                    className="pagination-btn"
+                  >
+                    Anterior
+                  </button>
+                  
+                  <span className="pagination-info">
+                    Página {pagina} de {totalPaginas} ({total} total)
+                  </span>
+                  
+                  <button 
+                    onClick={() => setPagina(pagina + 1)}
+                    disabled={!tienePaginaSiguiente}
+                    className="pagination-btn"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
+
+        {/* Modal de Detalle */}
+        {detalleModal && (
+          <div className="modal-overlay" onClick={cerrarDetalle}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Detalle de Factura: {detalleModal.factura.numero_factura}</h3>
+                <button className="close-btn" onClick={cerrarDetalle}>✕</button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="factura-info">
+                  <p><strong>Cliente:</strong> {detalleModal.factura.razon_social_receptor}</p>
+                  <p><strong>RIF:</strong> {detalleModal.factura.rif_receptor}</p>
+                  <p><strong>Fecha:</strong> {detalleModal.factura.fecha}</p>
+                  <p><strong>Subtotal:</strong> ${detalleModal.factura.subtotal}</p>
+                  <p><strong>IVA:</strong> ${detalleModal.factura.iva}</p>
+                  <p><strong>Total:</strong> ${detalleModal.factura.total}</p>
+                </div>
+                
+                <h4>Detalles de la Factura</h4>
+                <table className="detalles-table">
+                  <thead>
+                    <tr>
+                      <th>Descripción</th>
+                      <th>Cantidad</th>
+                      <th>Precio Unitario</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detalleModal.detalles.map((detalle, index) => (
+                      <tr key={index}>
+                        <td>{detalle.descripcion}</td>
+                        <td>{detalle.cantidad}</td>
+                        <td>${detalle.precio_unitario}</td>
+                        <td>${detalle.monto_total}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="dashboard-footer">
