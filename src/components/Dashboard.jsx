@@ -370,51 +370,92 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Modal de Detalle */}
-        {detalleModal && (
-          <div className="modal-overlay" onClick={cerrarDetalle}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3>Detalle de Factura: {detalleModal.factura.numero_factura}</h3>
-                <button className="close-btn" onClick={cerrarDetalle}>✕</button>
-              </div>
-              
-              <div className="modal-body">
-                <div className="factura-info">
-                  <p><strong>Cliente:</strong> {detalleModal.factura.razon_social_receptor}</p>
-                  <p><strong>RIF:</strong> {detalleModal.factura.rif_receptor}</p>
-                  <p><strong>Fecha:</strong> {detalleModal.factura.fecha}</p>
-                  <p><strong>Subtotal:</strong> ${detalleModal.factura.subtotal}</p>
-                  <p><strong>IVA:</strong> ${detalleModal.factura.iva}</p>
-                  <p><strong>Total:</strong> ${detalleModal.factura.total}</p>
-                </div>
-                
-                <h4>Detalles de la Factura</h4>
-                <table className="detalles-table">
-                  <thead>
-                    <tr>
-                      <th>Descripción</th>
-                      <th>Cantidad</th>
-                      <th>Precio Unitario</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detalleModal.detalles.map((detalle, index) => (
-                      <tr key={index}>
-                        <td>{detalle.descripcion}</td>
-                        <td>{detalle.cantidad}</td>
-                        <td>${detalle.precio_unitario}</td>
-                        <td>${detalle.monto_total}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            // En la parte donde manejas el detalleModal, actualiza la sección de renderizado:
+
+{/* Modal de Detalle */}
+{detalleModal && (
+  <div className="modal-overlay" onClick={cerrarDetalle}>
+    <div className="modal-content detalle-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-header">
+        <h3>Detalle de Factura: {detalleModal.factura.numero_factura}</h3>
+        <button className="close-btn" onClick={cerrarDetalle}>✕</button>
+      </div>
+      
+      <div className="modal-body">
+        <div className="factura-info">
+          <p><strong>Cliente:</strong> {detalleModal.factura.razon_social_receptor}</p>
+          <p><strong>RIF:</strong> {detalleModal.factura.rif_receptor}</p>
+          <p><strong>Fecha:</strong> {detalleModal.factura.fecha}</p>
+          <p><strong>Subtotal:</strong> ${detalleModal.factura.subtotal}</p>
+          <p><strong>IVA:</strong> ${detalleModal.factura.iva}</p>
+          <p><strong>Total:</strong> ${detalleModal.factura.total}</p>
+        </div>
+        
+        <h4>Detalles de la Factura</h4>
+        <table className="detalles-table">
+          <thead>
+            <tr>
+              <th>Descripción</th>
+              <th>Cantidad</th>
+              <th>Precio Unitario</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {detalleModal.detalles.map((detalle, index) => (
+              <tr key={index}>
+                <td>{detalle.descripcion}</td>
+                <td>{detalle.cantidad}</td>
+                <td>${detalle.precio_unitario}</td>
+                <td>${detalle.monto_total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Sección de Notas de Crédito/Débito */}
+        {detalleModal.notas && detalleModal.notas.length > 0 && (
+          <div className="notas-section">
+            <h4>Notas Asociadas ({detalleModal.notas.length})</h4>
+            <table className="notas-table">
+              <thead>
+                <tr>
+                  <th>Número Control</th>
+                  <th>Tipo</th>
+                  <th>Motivo</th>
+                  <th>Monto</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detalleModal.notas.map((nota, index) => (
+                  <tr key={index} className={`nota-row ${nota.tipo}`}>
+                    <td className="nota-control">{nota.numero_control}</td>
+                    <td className="nota-tipo">
+                      <span className={`tipo-badge ${nota.tipo}`}>
+                        {nota.tipo === 'credito' ? 'Crédito' : 'Débito'}
+                      </span>
+                    </td>
+                    <td className="nota-motivo">{nota.motivo}</td>
+                    <td className="nota-monto">${parseFloat(nota.monto_afectado).toFixed(2)}</td>
+                    <td className="nota-fecha">{new Date(nota.fecha_emision).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
+        {detalleModal.notas && detalleModal.notas.length === 0 && (
+          <div className="no-notas">
+            <p>Esta factura no tiene notas asociadas.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+        
         {/* Footer */}
         <div className="dashboard-footer">
           <p>FACDIN - Sistema de Facturación Electrónica | Cumple con SENIAT Venezuela</p>

@@ -684,3 +684,109 @@
     width: 100%;
   }
 }
+
+
+/* Estilos para el modal de detalle con notas */
+.detalle-modal {
+  max-width: 900px;
+  max-height: 90vh;
+}
+
+.modal-body {
+  max-height: calc(90vh - 100px);
+  overflow-y: auto;
+}
+
+.notas-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e5e7eb;
+}
+
+.notas-section h4 {
+  color: #1f2937;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.notas-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.notas-table th,
+.notas-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.notas-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.nota-row.credito td {
+  background: #f0fdf4;
+}
+
+.nota-row.debito td {
+  background: #eff6ff;
+}
+
+.tipo-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.tipo-badge.credito {
+  background: #10b981;
+  color: white;
+}
+
+.tipo-badge.debito {
+  background: #3b82f6;
+  color: white;
+}
+
+.nota-control {
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.nota-monto {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.no-notas {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Responsive para modal grande */
+@media (max-width: 768px) {
+  .detalle-modal {
+    width: 95%;
+    margin: 1rem;
+  }
+  
+  .notas-table {
+    font-size: 0.875rem;
+  }
+  
+  .notas-table th,
+  .notas-table td {
+    padding: 0.5rem;
+  }
+  
+  .tipo-badge {
+    font-size: 0.75rem;
+  }
+}

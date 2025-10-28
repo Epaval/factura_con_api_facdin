@@ -11,6 +11,14 @@ export default function NotasCredito() {
   });
   const [loading, setLoading] = useState(false);
 
+  // Motivos predefinidos
+  const motivos = [
+    'Devolución por Averiado',
+    'Cambio por Otro Producto',
+    'Decisión del Cliente',
+    'Por Vencimiento'
+  ];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -105,16 +113,21 @@ export default function NotasCredito() {
           <label htmlFor="motivo" className="form-label">
             Motivo
           </label>
-          <textarea
+          <select
             id="motivo"
-            placeholder="Describa el motivo de la nota (devolución, descuento, cargo adicional, etc.)"
             value={datos.motivo}
             onChange={(e) => setDatos({ ...datos, motivo: e.target.value })}
-            className="form-textarea"
-            rows="3"
+            className="form-select motivo-select"
             required
             disabled={loading}
-          />
+          >
+            <option value="">Seleccione un motivo</option>
+            {motivos.map((motivo, index) => (
+              <option key={index} value={motivo}>
+                {motivo}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="form-group">
@@ -140,7 +153,11 @@ export default function NotasCredito() {
           className={`submit-button ${loading ? 'loading' : ''}`}
           disabled={loading}
         >
-          {loading ? '' : 'Crear Nota'}
+          {loading ? (
+            <div className="spinner"></div>
+          ) : (
+            'Crear Nota'
+          )}
         </button>
       </form>
     </div>

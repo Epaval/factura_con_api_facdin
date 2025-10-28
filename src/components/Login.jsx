@@ -111,8 +111,7 @@ export default function Login() {
             <input
               id="ficha"
               type="text"
-              placeholder="Ingresa tu ficha"
-              value={ficha}
+              placeholder="Ingresa tu ficha"              
               onChange={(e) => setFicha(e.target.value)}
               className="login-input"
               required
@@ -132,7 +131,7 @@ export default function Login() {
                 id="password"
                 type={showPassword || passwordVisible ? "text" : "password"}
                 placeholder="Ingresa tu contraseña"
-                value={password}
+                
                 onChange={handlePasswordChange}
                 className="login-input password-input"
                 required
