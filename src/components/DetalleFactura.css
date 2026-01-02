@@ -1,0 +1,68 @@
+/* src/components/DetalleFactura.css */
+.detalle-container {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.btn-volver {
+  margin-bottom: 20px;
+  padding: 8px 16px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cabecera-factura h2 {
+  color: #1976d2;
+}
+
+.seccion {
+  margin: 20px 0;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.tabla-detalles {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.tabla-detalles th,
+.tabla-detalles td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: left;
+}
+
+.resumen {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #4caf50;
+  border-radius: 8px;
+  background-color: #e8f5e9;
+}
+
+.resumen-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+}
+
+.resumen-item.total {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #2e7d32;
+}
+
+.error {
+  color: #d32f2f;
+  padding: 12px;
+  background-color: #ffebee;
+  border-radius: 4px;
+}

@@ -8,6 +8,11 @@ import CajaControl from './components/CajaControl';
 import Navbar from './components/Navbar';
 import RegistrarEmpleado from './components/RegistrarEmpleado';
 import RegistrarPrimerAdmin from './components/RegistrarPrimerAdmin';
+import GestionClientes from './components/GestionClientes';  
+import GestionProductos from './components/GestionProductos';
+import { useInitializeDB } from './hooks/useInitializeDB';
+import ListaFacturas from './components/ListaFacturas';
+import DetalleFactura from './components/DetalleFactura';
 import './App.css';
 
 // Componente para verificar autenticación
@@ -57,8 +62,12 @@ const router = createBrowserRouter([
       { path: "/facturacion", element: <Facturacion /> },
       { path: "/notas", element: <NotasCredito /> },
       { path: "/caja", element: <CajaControl /> },
-      { path: "/registrar-primer-admin", element: <RegistrarPrimerAdmin />},
-      { path: "/registrar-empleado", element: <RegistrarEmpleado />}
+      { path: "/clientes", element: <GestionClientes /> },        
+      { path: "/productos", element: <GestionProductos /> },      
+      { path: "/registrar-primer-admin", element: <RegistrarPrimerAdmin /> },
+      { path: "/registrar-empleado", element: <RegistrarEmpleado /> },
+      { path: "/facturas", element: <ListaFacturas /> },
+      { path: "/facturas/detalle/:id", element: <DetalleFactura /> },
     ],
   },
   {
@@ -68,5 +77,6 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
+  useInitializeDB();
   return <RouterProvider router={router} />;
 }
