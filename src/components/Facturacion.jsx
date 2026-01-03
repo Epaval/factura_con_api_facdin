@@ -4,6 +4,8 @@ import { api } from '../services/api';
 import Tooltip from './Tooltip';
 import { obtenerProductos, buscarClientes, buscarClientePorIdentificacion } from '../services/localDB';
 import './Facturacion.css';
+import ModalPago from './ModalPago';
+import { guardarPago } from '../services/pagosLocalDB';
 
 export default function Facturacion() {
   const [factura, setFactura] = useState({
@@ -19,6 +21,7 @@ export default function Facturacion() {
   const [sugerenciasProductos, setSugerenciasProductos] = useState([]);
   const codigoInputRef = useRef(null);
   const rifReceptorRef = useRef(null);
+  const [mostrarModalPago, setMostrarModalPago] = useState(false);
 
   // Cargar productos al inicio
   useEffect(() => {
@@ -45,59 +48,57 @@ export default function Facturacion() {
     setTooltip({ isVisible: false, message: '', type: 'info' });
   };
 
- // Buscar cliente en base de datos local + autocompletar si es exacto
-const handleIdentificacionChange = async (value) => {
-  setFactura(prev => ({ ...prev, rifReceptor: value }));
-  
-  // Limpiar el nombre si el campo de identificación está vacío
-  if (!value.trim()) {
-    setFactura(prev => ({ ...prev, razonSocialReceptor: '' }));
-    setSugerenciasClientes([]);
-    return;
-  }
+  // Buscar cliente en base de datos local + autocompletar si es exacto
+  const handleIdentificacionChange = async (value) => {
+    setFactura(prev => ({ ...prev, rifReceptor: value }));
 
-  const cleanValue = value.toUpperCase().trim();
-
-  // Mostrar sugerencias si el valor tiene al menos 2 caracteres
-  if (cleanValue.length >= 2) {
-    setBuscandoCliente(true);
-    try {
-      const clientes = await buscarClientes(cleanValue);
-      setSugerenciasClientes(clientes);
-    } catch (error) {
-      console.error('Error al buscar clientes:', error);
+    // Limpiar el nombre si el campo de identificación está vacío
+    if (!value.trim()) {
+      setFactura(prev => ({ ...prev, razonSocialReceptor: '' }));
       setSugerenciasClientes([]);
-    } finally {
-      setBuscandoCliente(false);
+      return;
     }
-  } else {
-    setSugerenciasClientes([]);
-  }
 
-  // ✅ AUTOCOMPLETAR si la identificación es completa y válida
-  // Patrones típicos en Venezuela:
-  const esCI = /^[VE]\d{5,8}$/i.test(cleanValue); 
-  const esRIF = /^[JG]-\d{7,9}-\d$/i.test(cleanValue); 
+    const cleanValue = value.toUpperCase().trim();
 
-  if (esCI || esRIF) {
-    // Buscar cliente EXACTO por identificación
-    const clienteExacto = await buscarClientePorIdentificacion(cleanValue);
-    if (clienteExacto) {      
-      setFactura(prev => ({
-        ...prev,
-        rifReceptor: cleanValue,
-        razonSocialReceptor: clienteExacto.nombre
-      }));
-      
+    // Mostrar sugerencias si el valor tiene al menos 2 caracteres
+    if (cleanValue.length >= 2) {
+      setBuscandoCliente(true);
+      try {
+        const clientes = await buscarClientes(cleanValue);
+        setSugerenciasClientes(clientes);
+      } catch (error) {
+        console.error('Error al buscar clientes:', error);
+        setSugerenciasClientes([]);
+      } finally {
+        setBuscandoCliente(false);
+      }
+    } else {
       setSugerenciasClientes([]);
-      setTimeout(() => {
-        if (codigoInputRef.current) {
-          codigoInputRef.current.focus();
-        }
-      }, 0);
     }
-  }
-};
+    
+    const esCI = /^[VE]\d{5,8}$/i.test(cleanValue);
+    const esRIF = /^[JG]-\d{7,9}-\d$/i.test(cleanValue);
+
+    if (esCI || esRIF) {
+      // Buscar cliente EXACTO por identificación
+      const clienteExacto = await buscarClientePorIdentificacion(cleanValue);
+      if (clienteExacto) {
+        setFactura(prev => ({
+          ...prev,
+          rifReceptor: cleanValue,
+          razonSocialReceptor: clienteExacto.nombre
+        }));
+
+        setSugerenciasClientes([]);
+        setTimeout(() => {
+          if (codigoInputRef.current) {
+            codigoInputRef.current.focus();
+          }
+        }, 0);
+      }
+    }
+  };
   // Seleccionar cliente de sugerencias
   const seleccionarCliente = (cliente) => {
     const identificacion = cliente.ci || cliente.rif;
@@ -295,6 +296,45 @@ const handleIdentificacionChange = async (value) => {
   const subtotal = factura.detalles.reduce((sum, d) => sum + (d.cantidad * d.precioUnitario), 0);
   const iva = subtotal * 0.16;
   const total = subtotal + iva;
+  
+  // En la función manejarPago (después de recibir la respuesta de la API)
+const manejarPago = async (pagos, vuelto) => {
+  setLoading(true);
+  setMostrarModalPago(false);
+  
+  try {
+    // 1. Registrar factura en Facdin API
+    const payloadFactura = {
+      rifReceptor: factura.rifReceptor,
+      razonSocialReceptor: factura.razonSocialReceptor,
+      detalles: factura.detalles.map(d => ({
+        descripcion: `${d.descripcion} [${d.codigo}]`,
+        cantidad: d.cantidad,
+        precioUnitario: d.precioUnitario
+      }))
+    };
+
+    const res = await api.post('/facturas/insertar', payloadFactura);
+    const numeroFactura = res.data.numeroFactura;
+
+    // 2. ✅ Guardar pagos en base de datos LOCAL
+    await guardarPago(numeroFactura, pagos, vuelto);
+
+    showTooltip(`✅ Factura #${numeroFactura} registrada con pago exitoso`, 'success');
+    
+    setTimeout(() => {
+      limpiarFormulario();
+    }, 1500);
+    
+  } catch (err) {
+    const errorMsg = err.response?.data?.error || 'Error al registrar factura con pago';
+    showTooltip(`❌ ${errorMsg}`, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
+  
+  
 
   return (
     <div className="facturacion-container">
@@ -611,24 +651,25 @@ const handleIdentificacionChange = async (value) => {
           </button>
 
           <button
-            type="submit"
+            type="button"
+            onClick={() => setMostrarModalPago(true)}
             className="btn-primary"
             disabled={loading || factura.detalles.length === 0}
           >
-            {loading ? (
-              <>
-                <div className="spinner-small"></div>
-                Procesando...
-              </>
-            ) : (
-              <>
-                <i className="icon-check"></i>
-                Registrar Factura
-              </>
-            )}
+            <i className="icon-credit-card"></i>
+            Registrar Pago
           </button>
+
         </div>
       </form>
+      {/* Antes del cierre de </div> principal */}
+      {mostrarModalPago && (
+        <ModalPago
+          totalFactura={total}
+          onPagar={manejarPago}
+          onCancel={() => setMostrarModalPago(false)}
+        />
+      )}
     </div>
   );
 }

@@ -4,10 +4,12 @@ import Dexie from 'dexie';
 const db = new Dexie('FacdinLocalDB');
 
 // Definir esquema
-db.version(1).stores({
-  clientes: '&id, ci, rif, nombre', // &id = primary key auto
-  productos: '&id, codigo, descripcion, estatus' // índice en codigo, descripcion, estatus
+db.version(2).stores({
+  clientes: '&id, ci, rif, nombre',
+  productos: '&id, codigo, descripcion, estatus',   
+  pagos: '&id, facturaId, numeroFactura, fecha, pagosJson' // ver nota abajo
 });
+
 
 // Tipos opcionales (TypeScript-style en JS puro)
 export class Cliente {

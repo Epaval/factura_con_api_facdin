@@ -51,6 +51,11 @@ export default function Navbar() {
           >
             Caja
           </button>
+          <button onClick={() => navigate('/reporte-diario')}
+            className="navbar-button reporte"
+          >
+            Reporte Diario
+          </button>
           <button 
             onClick={handleLogout} 
             className="navbar-button logout"

@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
+// src/components/Dashboard.jsx
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import './Dashboard.css';
 
 export default function Dashboard() {
   const [cajaAbierta, setCajaAbierta] = useState(false);
@@ -18,21 +21,25 @@ export default function Dashboard() {
     email: ''
   });
   const [mostrarFormEmpleado, setMostrarFormEmpleado] = useState(false);
+  const [estadisticas, setEstadisticas] = useState({
+    totalHoy: 0,
+    facturasHoy: 0,
+    promedioTicket: 0,
+    clientesAtendidos: 0
+  });
+  const [cajaInfo, setCajaInfo] = useState(null);
 
-  const LIMIT = 5;
+  const LIMIT = 8;
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const cajaData = localStorage.getItem('cajaData');
-    setCajaAbierta(!!cajaData);
-    cargarUltimasFacturas();
-  }, [pagina, busqueda]);
-
-  const cargarUltimasFacturas = async () => {
+  // ✅ Cargar últimas facturas con useCallback para estabilidad
+  const cargarUltimasFacturas = useCallback(async () => {
     try {
+      setLoading(true);
       const offset = (pagina - 1) * LIMIT;
       const res = await api.get(`/facturas/recientes?limit=${LIMIT}&offset=${offset}&search=${busqueda}`);
-      setUltimasFacturas(res.data.data);
-      setTotal(res.data.total);
+      setUltimasFacturas(res.data.data || []);
+      setTotal(res.data.total || 0);
     } catch (err) {
       console.error('Error al cargar facturas:', err);
       setUltimasFacturas([]);
@@ -40,7 +47,29 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagina, busqueda]);
+
+  // ✅ Cargar estadísticas
+  const cargarEstadisticas = useCallback(async () => {
+    try {
+      const hoy = new Date().toISOString().split('T')[0];
+      const res = await api.get(`/facturas/estadisticas?fecha=${hoy}`);
+      setEstadisticas(res.data);
+    } catch (err) {
+      console.error('Error al cargar estadísticas:', err);
+    }
+  }, []);
+
+  // ✅ Efecto principal
+  useEffect(() => {
+    const cajaData = localStorage.getItem('cajaData');
+    setCajaAbierta(!!cajaData);
+    if (cajaData) {
+      setCajaInfo(JSON.parse(cajaData));
+    }
+    cargarUltimasFacturas();
+    cargarEstadisticas();
+  }, [cargarUltimasFacturas, cargarEstadisticas]);
 
   const abrirDetalle = async (facturaId) => {
     try {
@@ -48,6 +77,7 @@ export default function Dashboard() {
       setDetalleModal(res.data);
     } catch (err) {
       console.error('Error al cargar detalle:', err);
+      alert('No se pudo cargar el detalle de la factura');
     }
   };
 
@@ -63,7 +93,7 @@ export default function Dashboard() {
     e.preventDefault();
     try {
       const res = await api.post('/usuarios/registrar', formEmpleado);
-      alert(res.data.message);
+      alert('✅ ' + res.data.message);
       setFormEmpleado({
         nombre: '',
         ficha: '',
@@ -74,7 +104,7 @@ export default function Dashboard() {
       });
       setMostrarFormEmpleado(false);
     } catch (err) {
-      alert(err.response?.data?.error || 'Error al registrar empleado');
+      alert('❌ ' + (err.response?.data?.error || 'Error al registrar empleado'));
     }
   };
 
@@ -82,386 +112,765 @@ export default function Dashboard() {
     setMostrarFormEmpleado(false);
   };
 
+  const formatearMoneda = (monto) => {
+    return new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: 'VES',
+      minimumFractionDigits: 2
+    }).format(monto);
+  };
+
+  const formatearFecha = (fechaStr) => {
+    if (!fechaStr) return '';
+    try {
+      const fecha = new Date(fechaStr);
+      return fecha.toLocaleDateString('es-VE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return fechaStr;
+    }
+  };
+
+  const formatearHora = (fechaStr) => {
+    if (!fechaStr) return '';
+    try {
+      const fecha = new Date(fechaStr);
+      return fecha.toLocaleTimeString('es-VE', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '';
+    }
+  };
+
+  const calcularEstadoPago = (pagos) => {
+    if (!pagos || pagos.length === 0) return { icon: '❓', label: 'Sin pago', color: '#95a5a6' };
+    const totalPagado = pagos.reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
+    return totalPagado > 0 
+      ? { icon: '✅', label: 'Pagada', color: '#27ae60' }
+      : { icon: '⏳', label: 'Pendiente', color: '#f39c12' };
+  };
+
+  // ✅ Función para recargar todo
+  const recargarDashboard = () => {
+    cargarUltimasFacturas();
+    cargarEstadisticas();
+  };
+
   return (
     <div className="dashboard-container">
+      {/* Background decorativo */}
+      <div className="dashboard-background">
+        <div className="bg-shape shape-1"></div>
+        <div className="bg-shape shape-2"></div>
+        <div className="bg-shape shape-3"></div>
+      </div>
+      
       <div className="dashboard-content">
-        
-        {/* Encabezado */}
-        <div className="dashboard-header">
-          <h1 className="dashboard-title">
-            Panel de Control FACDIN
-          </h1>
-          <p className="dashboard-subtitle">
-            Bienvenido al sistema de facturación seguro y auditado
-          </p>
-        </div>
-
-        {/* Estado de Caja */}
-        <div className="caja-status">
-          <div className="caja-status-content">
-            <div className="caja-status-text">
-              <h2>Estado de Caja</h2>
-              <p>
-                {cajaAbierta ? 'Caja abierta - Listo para facturar' : 'Caja cerrada'}
-              </p>
+        {/* Header */}
+        <header className="dashboard-header">
+          <div className="header-left">
+            <h1 className="dashboard-title">
+              <span className="title-icon">📊</span>
+              Panel de Control FACDIN
+            </h1>
+            <p className="dashboard-subtitle">
+              Sistema de Facturación Electrónica - Gestión Inteligente
+            </p>
+          </div>
+          
+          <div className="header-right">
+            <div className="user-info">
+              <span className="user-avatar">👤</span>
+              <div className="user-details">
+                <span className="user-name">Administrador</span>
+                <span className="user-role">Supervisor</span>
+              </div>
             </div>
-            <span
-              className={`status-badge ${cajaAbierta ? 'open' : 'closed'}`}
-            >
-              {cajaAbierta ? (
-                <>
-                  <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Abierta
-                </>
-              ) : (
-                <>
-                  <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                  Cerrada
-                </>
+            
+            <div className="header-actions">
+              <button 
+                className="btn-refresh"
+                onClick={recargarDashboard}
+                title="Actualizar datos"
+              >
+                🔄
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Estadísticas principales */}
+        <section className="stats-grid">
+          <div className="stat-card total-card">
+            <div className="stat-icon">💰</div>
+            <div className="stat-content">
+              <span className="stat-label">Ventas Hoy</span>
+              <span className="stat-value">{formatearMoneda(estadisticas.totalHoy)}</span>
+              <span className="stat-change">+12% vs ayer</span>
+            </div>
+          </div>
+          
+          <div className="stat-card">
+            <div className="stat-icon">📄</div>
+            <div className="stat-content">
+              <span className="stat-label">Facturas Hoy</span>
+              <span className="stat-value">{estadisticas.facturasHoy}</span>
+              <span className="stat-change">{estadisticas.promedioTicket > 0 ? formatearMoneda(estadisticas.promedioTicket) : '—'}</span>
+            </div>
+          </div>
+          
+          <div className="stat-card">
+            <div className="stat-icon">👥</div>
+            <div className="stat-content">
+              <span className="stat-label">Clientes Atendidos</span>
+              <span className="stat-value">{estadisticas.clientesAtendidos}</span>
+              <span className="stat-change">Últimas 24h</span>
+            </div>
+          </div>
+          
+          <div className="stat-card">
+            <div className="stat-icon">🏪</div>
+            <div className="stat-content">
+              <span className="stat-label">Estado Caja</span>
+              <span className={`stat-value ${cajaAbierta ? 'open' : 'closed'}`}>
+                {cajaAbierta ? 'Abierta' : 'Cerrada'}
+              </span>
+              {cajaInfo && (
+                <span className="stat-change">
+                  {formatearHora(cajaInfo.fechaApertura)}
+                </span>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* Estado de caja detallado */}
+        <div className="caja-detalle">
+          <div className="caja-header">
+            <h2 className="caja-title">
+              <span className="caja-icon">🏪</span>
+              Información de Caja
+            </h2>
+            <span className={`caja-status-badge ${cajaAbierta ? 'abierta' : 'cerrada'}`}>
+              {cajaAbierta ? '🟢 ABIERTA' : '🔴 CERRADA'}
             </span>
           </div>
+          
+          <div className="caja-info">
+            {cajaAbierta ? (
+              <>
+                <div className="caja-item">
+                  <span className="caja-label">Responsable:</span>
+                  <span className="caja-value">{cajaInfo?.responsable || 'No especificado'}</span>
+                </div>
+                <div className="caja-item">
+                  <span className="caja-label">Apertura:</span>
+                  <span className="caja-value">
+                    {formatearFecha(cajaInfo?.fechaApertura)} - {formatearHora(cajaInfo?.fechaApertura)}
+                  </span>
+                </div>
+                <div className="caja-item">
+                  <span className="caja-label">Saldo Inicial:</span>
+                  <span className="caja-value saldo">{formatearMoneda(cajaInfo?.saldoInicial || 0)}</span>
+                </div>
+                <div className="caja-item">
+                  <span className="caja-label">Turno:</span>
+                  <span className="caja-value turno">{cajaInfo?.turno || 'No definido'}</span>
+                </div>
+              </>
+            ) : (
+              <div className="caja-cerrada">
+                <div className="cerrada-icon">🔒</div>
+                <div className="cerrada-text">
+                  <h3>Caja actualmente cerrada</h3>
+                  <p>Para emitir facturas, primero debe abrir la caja</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Acciones Rápidas */}
-        <div className="quick-actions">
-          <button
-            onClick={() => window.location.href = '/facturacion'}
-            disabled={!cajaAbierta}
-            className={`action-button ${cajaAbierta ? 'enabled' : 'disabled'}`}
-          >
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3>Emitir Factura</h3>
-            <p>
-              {cajaAbierta ? 'Haz clic para comenzar' : 'Abre la caja primero'}
-            </p>
-          </button>
+        {/* Acciones rápidas */}
+        <section className="quick-actions-section">
+          <h2 className="section-title">
+            <span className="section-icon">🚀</span>
+            Acciones Rápidas
+          </h2>
+          
+          <div className="actions-grid">
+            <button
+              onClick={() => navigate('/facturacion')}
+              disabled={!cajaAbierta}
+              className={`action-card ${cajaAbierta ? 'enabled' : 'disabled'}`}
+            >
+              <div className="action-icon factura">📄</div>
+              <div className="action-content">
+                <h3 className="action-title">Emitir Factura</h3>
+                <p className="action-desc">
+                  {cajaAbierta ? 'Crear nueva factura' : 'Caja cerrada'}
+                </p>
+              </div>
+              <div className="action-badge">
+                {cajaAbierta ? 'Disponible' : 'Bloqueado'}
+              </div>
+            </button>
 
-          <button
-            onClick={() => setMostrarFormEmpleado(true)}
-            className="action-button blue"
-          >
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
-            <h3>Registrar Empleado</h3>
-            <p>Agregar nuevo empleado</p>
-          </button>
+            <button
+              onClick={() => setMostrarFormEmpleado(true)}
+              className="action-card empleado"
+            >
+              <div className="action-icon">👥</div>
+              <div className="action-content">
+                <h3 className="action-title">Registrar Empleado</h3>
+                <p className="action-desc">Agregar nuevo personal</p>
+              </div>
+              <div className="action-badge">Nuevo</div>
+            </button>
 
-          <button
-            onClick={() => window.location.href = '/notas'}
-            className="action-button green"
-          >
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <h3>Notas de Crédito</h3>
-            <p>Devoluciones o ajustes</p>
-          </button>
+            <button
+              onClick={() => navigate('/notas')}
+              className="action-card nota"
+            >
+              <div className="action-icon">📝</div>
+              <div className="action-content">
+                <h3 className="action-title">Notas de Crédito</h3>
+                <p className="action-desc">Devoluciones y ajustes</p>
+              </div>
+              <div className="action-badge">3 pendientes</div>
+            </button>
 
-          <button
-            onClick={() => window.location.href = '/caja'}
-            className="action-button purple"
-          >
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.542-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.542-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.542.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.542.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <h3>Control de Caja</h3>
-            <p>Abrir/Cerrar caja</p>
-          </button>
-        </div>
+            <button
+              onClick={() => navigate('/caja')}
+              className="action-card caja"
+            >
+              <div className="action-icon">💰</div>
+              <div className="action-content">
+                <h3 className="action-title">Control de Caja</h3>
+                <p className="action-desc">Abrir/Cerrar caja</p>
+              </div>
+              <div className="action-badge">Gestión</div>
+            </button>
 
-        {/* Modal de Registro de Empleado */}
-        {mostrarFormEmpleado && (
-          <div className="modal-overlay" onClick={cerrarModalEmpleado}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3>Registrar Nuevo Empleado</h3>
-                <button className="close-btn" onClick={cerrarModalEmpleado}>✕</button>
+            <button
+              onClick={() => navigate('/reportes')}
+              className="action-card reporte"
+            >
+              <div className="action-icon">📊</div>
+              <div className="action-content">
+                <h3 className="action-title">Reportes</h3>
+                <p className="action-desc">Análisis y estadísticas</p>
+              </div>
+              <div className="action-badge">Ver todos</div>
+            </button>
+
+            <button
+              onClick={() => navigate('/clientes')}
+              className="action-card cliente"
+            >
+              <div className="action-icon">👤</div>
+              <div className="action-content">
+                <h3 className="action-title">Gestión de Clientes</h3>
+                <p className="action-desc">Base de datos clientes</p>
+              </div>
+              <div className="action-badge">215 registros</div>
+            </button>
+          </div>
+        </section>
+
+        {/* Facturas recientes */}
+        <section className="facturas-section">
+          <div className="section-header">
+            <h2 className="section-title">
+              <span className="section-icon">📋</span>
+              Facturas Recientes
+            </h2>
+            
+            <div className="section-controls">
+              <div className="search-container">
+                <span className="search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Buscar por número, cliente o RIF..."
+                  value={busqueda}
+                  onChange={(e) => {
+                    setBusqueda(e.target.value);
+                    setPagina(1);
+                  }}
+                  className="search-input"
+                />
+                {busqueda && (
+                  <button 
+                    className="clear-search"
+                    onClick={() => setBusqueda('')}
+                    title="Limpiar búsqueda"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
               
-              <div className="modal-body">
-                <form onSubmit={registrarEmpleado} className="empleado-form">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="nombre">Nombre Completo</label>
-                      <input
-                        id="nombre"
-                        type="text"
-                        value={formEmpleado.nombre}
-                        onChange={(e) => setFormEmpleado({...formEmpleado, nombre: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="ficha">Ficha</label>
-                      <input
-                        id="ficha"
-                        type="text"
-                        value={formEmpleado.ficha}
-                        onChange={(e) => setFormEmpleado({...formEmpleado, ficha: e.target.value})}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="ci">Cédula de Identidad</label>
-                      <input
-                        id="ci"
-                        type="text"
-                        value={formEmpleado.ci}
-                        onChange={(e) => setFormEmpleado({...formEmpleado, ci: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="email">Email</label>
-                      <input
-                        id="email"
-                        type="email"
-                        value={formEmpleado.email}
-                        onChange={(e) => setFormEmpleado({...formEmpleado, email: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="rol">Rol</label>
-                      <select
-                        id="rol"
-                        value={formEmpleado.rol}
-                        onChange={(e) => setFormEmpleado({...formEmpleado, rol: e.target.value})}
-                        required
-                      >
-                        <option value="asesor">Asesor</option>
-                        <option value="ga">Gerente de Área (GA)</option>
-                        <option value="gae">Gerente de Área Especializado (GAE)</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="password">Contraseña</label>
-                      <input
-                        id="password"
-                        type="password"
-                        value={formEmpleado.password}
-                        onChange={(e) => setFormEmpleado({...formEmpleado, password: e.target.value})}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="form-actions">
-                    <button type="submit" className="submit-btn">Registrar Empleado</button>
-                    <button
-                      type="button"
-                      className="cancel-btn"
-                      onClick={cerrarModalEmpleado}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
+              <div className="pagination-info">
+                Mostrando {Math.min((pagina - 1) * LIMIT + 1, total)}-{Math.min(pagina * LIMIT, total)} de {total}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Últimas Facturas */}
-        <div className="facturas-container">
-          <div className="facturas-header">
-            <h2>Últimas Facturas Emitidas</h2>
-            <div className="facturas-controls">
-              <input
-                type="text"
-                placeholder="Buscar por número o cliente..."
-                value={busqueda}
-                onChange={(e) => {
-                  setBusqueda(e.target.value);
-                  setPagina(1); // Reiniciar a primera página al buscar
-                }}
-                className="search-input"
-              />
             </div>
           </div>
           
           <div className="facturas-table-container">
             {loading ? (
-              <div className="loading-spinner">
-                <div className="spinner"></div>
+              <div className="loading-state">
+                <div className="loading-spinner"></div>
+                <p>Cargando facturas...</p>
               </div>
             ) : (
               <>
-                <table className="facturas-table">
-                  <thead>
-                    <tr>
-                      <th>Número</th>
-                      <th>Cliente</th>
-                      <th>Total</th>
-                      <th>Fecha</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ultimasFacturas.length > 0 ? (
-                      ultimasFacturas.map((factura) => (
-                        <tr key={factura.id}>
-                          <td className="factura-numero">
-                            <button 
-                              onClick={() => abrirDetalle(factura.id)}
-                              className="detalle-btn"
-                            >
-                              {factura.numero}
-                            </button>
-                          </td>
-                          <td className="factura-cliente">{factura.cliente}</td>
-                          <td className="factura-total">${factura.total}</td>
-                          <td className="factura-fecha">{factura.fecha}</td>
-                          <td className="factura-acciones">
-                            <button 
-                              onClick={() => abrirDetalle(factura.id)}
-                              className="detalle-btn"
-                            >
-                              Ver Detalle
-                            </button>
+                <div className="table-responsive">
+                  <table className="facturas-table">
+                    <thead>
+                      <tr>
+                        <th className="col-numero">N° Factura</th>
+                        <th className="col-cliente">Cliente</th>
+                        <th className="col-fecha">Fecha</th>
+                        <th className="col-estado">Estado</th>
+                        <th className="col-total">Total</th>
+                        <th className="col-acciones">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ultimasFacturas.length > 0 ? (
+                        ultimasFacturas.map((factura) => {
+                          const estado = calcularEstadoPago(factura.pagos);
+                          
+                          return (
+                            <tr key={factura.id} className="factura-row">
+                              <td className="col-numero">
+                                <div className="factura-numero">
+                                  <span className="numero-prefijo"></span>
+                                  {factura.numero || factura.id}
+                                </div>
+                              </td>
+                              <td className="col-cliente">
+                                <div className="cliente-info">
+                                  <span className="cliente-nombre">
+                                    {factura.razon_social_receptor || factura.cliente || 'Cliente no registrado'}
+                                  </span>
+                                  {factura.rif_receptor && (
+                                    <small className="cliente-rif">RIF: {factura.rif_receptor}</small>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="col-fecha">
+                                <div className="fecha-container">
+                                  <span className="fecha-dia">{formatearFecha(factura.fecha)}</span>
+                                  <small className="fecha-hora">{formatearHora(factura.fecha)}</small>
+                                </div>
+                              </td>
+                              <td className="col-estado">
+                                <span 
+                                  className="estado-badge"
+                                  style={{ backgroundColor: estado.color + '20', color: estado.color }}
+                                >
+                                  <span className="estado-icon">{estado.icon}</span>
+                                  {estado.label}
+                                </span>
+                              </td>
+                              <td className="col-total">
+                                <div className="total-container">
+                                  <span className="total-monto">{formatearMoneda(factura.total || 0)}</span>
+                                  {factura.vuelto > 0 && (
+                                    <small className="vuelto-info">Vuelto: {formatearMoneda(factura.vuelto)}</small>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="col-acciones">
+                                <div className="acciones-container">
+                                  <button 
+                                    onClick={() => abrirDetalle(factura.id)}
+                                    className="btn-detalle"
+                                    title="Ver detalle"
+                                  >
+                                    <span className="btn-icon">👁️</span>
+                                    Ver
+                                  </button>
+                                  
+                                  {factura.estado_determinado === 'pendiente' && (
+                                    <button 
+                                      onClick={() => navigate(`/facturas/pagar/${factura.id}`)}
+                                      className="btn-pagar"
+                                      title="Registrar pago"
+                                    >
+                                      <span className="btn-icon">💳</span>
+                                      Pagar
+                                    </button>
+                                  )}
+                                  
+                                  <button 
+                                    onClick={() => window.print(factura.id)}
+                                    className="btn-imprimir"
+                                    title="Imprimir factura"
+                                  >
+                                    <span className="btn-icon">🖨️</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr className="no-data-row">
+                          <td colSpan="6">
+                            <div className="no-data">
+                              <span className="no-data-icon">📭</span>
+                              <div className="no-data-text">
+                                <h3>No se encontraron facturas</h3>
+                                <p>{busqueda ? 'Intenta con otros términos de búsqueda' : 'No hay facturas registradas'}</p>
+                              </div>
+                            </div>
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="no-facturas">
-                          No se han emitido facturas aún.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
                 
                 {/* Paginación */}
-                <div className="pagination">
-                  <button 
-                    onClick={() => setPagina(pagina - 1)}
-                    disabled={!tienePaginaAnterior}
-                    className="pagination-btn"
-                  >
-                    Anterior
-                  </button>
-                  
-                  <span className="pagination-info">
-                    Página {pagina} de {totalPaginas} ({total} total)
-                  </span>
-                  
-                  <button 
-                    onClick={() => setPagina(pagina + 1)}
-                    disabled={!tienePaginaSiguiente}
-                    className="pagination-btn"
-                  >
-                    Siguiente
-                  </button>
-                </div>
+                {totalPaginas > 1 && (
+                  <div className="pagination">
+                    <button 
+                      onClick={() => setPagina(pagina - 1)}
+                      disabled={!tienePaginaAnterior}
+                      className="pagination-btn prev"
+                    >
+                      <span className="pagination-icon">←</span>
+                      Anterior
+                    </button>
+                    
+                    <div className="pagination-numbers">
+                      {[...Array(Math.min(5, totalPaginas))].map((_, i) => {
+                        const pageNum = i + 1;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setPagina(pageNum)}
+                            className={`pagination-number ${pagina === pageNum ? 'active' : ''}`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      
+                      {totalPaginas > 5 && (
+                        <>
+                          <span className="pagination-ellipsis">...</span>
+                          <button
+                            onClick={() => setPagina(totalPaginas)}
+                            className={`pagination-number ${pagina === totalPaginas ? 'active' : ''}`}
+                          >
+                            {totalPaginas}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    
+                    <button 
+                      onClick={() => setPagina(pagina + 1)}
+                      disabled={!tienePaginaSiguiente}
+                      className="pagination-btn next"
+                    >
+                      Siguiente
+                      <span className="pagination-icon">→</span>
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>
-        </div>
+        </section>
 
-            // En la parte donde manejas el detalleModal, actualiza la sección de renderizado:
-
-{/* Modal de Detalle */}
-{detalleModal && (
-  <div className="modal-overlay" onClick={cerrarDetalle}>
-    <div className="modal-content detalle-modal" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <h3>Detalle de Factura: {detalleModal.factura.numero_factura}</h3>
-        <button className="close-btn" onClick={cerrarDetalle}>✕</button>
-      </div>
-      
-      <div className="modal-body">
-        <div className="factura-info">
-          <p><strong>Cliente:</strong> {detalleModal.factura.razon_social_receptor}</p>
-          <p><strong>RIF:</strong> {detalleModal.factura.rif_receptor}</p>
-          <p><strong>Fecha:</strong> {detalleModal.factura.fecha}</p>
-          <p><strong>Subtotal:</strong> ${detalleModal.factura.subtotal}</p>
-          <p><strong>IVA:</strong> ${detalleModal.factura.iva}</p>
-          <p><strong>Total:</strong> ${detalleModal.factura.total}</p>
-        </div>
-        
-        <h4>Detalles de la Factura</h4>
-        <table className="detalles-table">
-          <thead>
-            <tr>
-              <th>Descripción</th>
-              <th>Cantidad</th>
-              <th>Precio Unitario</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {detalleModal.detalles.map((detalle, index) => (
-              <tr key={index}>
-                <td>{detalle.descripcion}</td>
-                <td>{detalle.cantidad}</td>
-                <td>${detalle.precio_unitario}</td>
-                <td>${detalle.monto_total}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {/* Sección de Notas de Crédito/Débito */}
-        {detalleModal.notas && detalleModal.notas.length > 0 && (
-          <div className="notas-section">
-            <h4>Notas Asociadas ({detalleModal.notas.length})</h4>
-            <table className="notas-table">
-              <thead>
-                <tr>
-                  <th>Número Control</th>
-                  <th>Tipo</th>
-                  <th>Motivo</th>
-                  <th>Monto</th>
-                  <th>Fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detalleModal.notas.map((nota, index) => (
-                  <tr key={index} className={`nota-row ${nota.tipo}`}>
-                    <td className="nota-control">{nota.numero_control}</td>
-                    <td className="nota-tipo">
-                      <span className={`tipo-badge ${nota.tipo}`}>
-                        {nota.tipo === 'credito' ? 'Crédito' : 'Débito'}
-                      </span>
-                    </td>
-                    <td className="nota-motivo">{nota.motivo}</td>
-                    <td className="nota-monto">${parseFloat(nota.monto_afectado).toFixed(2)}</td>
-                    <td className="nota-fecha">{new Date(nota.fecha_emision).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {detalleModal.notas && detalleModal.notas.length === 0 && (
-          <div className="no-notas">
-            <p>Esta factura no tiene notas asociadas.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-)}
-        
         {/* Footer */}
-        <div className="dashboard-footer">
-          <p>FACDIN - Sistema de Facturación Electrónica | Cumple con SENIAT Venezuela</p>
-          <p>© {new Date().getFullYear()} Todos los derechos reservados.</p>
-        </div>
+        <footer className="dashboard-footer">
+          <div className="footer-content">
+            <div className="footer-logo">
+              <span className="footer-icon">📊</span>
+              <span className="footer-name">FACDIN</span>
+            </div>
+            
+            <div className="footer-info">
+              <p className="footer-text">
+                Sistema de Facturación Electrónica | Cumple con normativas SENIAT Venezuela
+              </p>
+              <p className="footer-copyright">
+                © {new Date().getFullYear()} Todos los derechos reservados • v2.1.0
+              </p>
+            </div>
+            
+            <div className="footer-stats">
+              <div className="footer-stat">
+                <span className="stat-value">{total}</span>
+                <span className="stat-label">Facturas totales</span>
+              </div>
+              <div className="footer-stat">
+                <span className="stat-value">{estadisticas.facturasHoy}</span>
+                <span className="stat-label">Hoy</span>
+              </div>
+              <div className="footer-stat">
+                <span className="stat-value">24/7</span>
+                <span className="stat-label">Disponibilidad</span>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
+
+      {/* Modal de registro de empleado */}
+      {mostrarFormEmpleado && (
+        <div className="modal-overlay" onClick={cerrarModalEmpleado}>
+          <div className="modal-content empleado-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">
+                <span className="modal-icon">👥</span>
+                <h3>Registrar Nuevo Empleado</h3>
+              </div>
+              <button className="modal-close" onClick={cerrarModalEmpleado} aria-label="Cerrar">
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <form onSubmit={registrarEmpleado} className="empleado-form">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-icon">👤</span>
+                      Nombre Completo
+                    </label>
+                    <input
+                      type="text"
+                      value={formEmpleado.nombre}
+                      onChange={(e) => setFormEmpleado({...formEmpleado, nombre: e.target.value})}
+                      className="form-input"
+                      placeholder="Ej: Juan Pérez"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-icon">🔢</span>
+                      Ficha de Empleado
+                    </label>
+                    <input
+                      type="text"
+                      value={formEmpleado.ficha}
+                      onChange={(e) => setFormEmpleado({...formEmpleado, ficha: e.target.value})}
+                      className="form-input"
+                      placeholder="Ej: FAC001"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-icon">🆔</span>
+                      Cédula de Identidad
+                    </label>
+                    <input
+                      type="text"
+                      value={formEmpleado.ci}
+                      onChange={(e) => setFormEmpleado({...formEmpleado, ci: e.target.value})}
+                      className="form-input"
+                      placeholder="Ej: V-12345678"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-icon">📧</span>
+                      Correo Electrónico
+                    </label>
+                    <input
+                      type="email"
+                      value={formEmpleado.email}
+                      onChange={(e) => setFormEmpleado({...formEmpleado, email: e.target.value})}
+                      className="form-input"
+                      placeholder="ejemplo@empresa.com"
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-icon">🎯</span>
+                      Rol del Empleado
+                    </label>
+                    <select
+                      value={formEmpleado.rol}
+                      onChange={(e) => setFormEmpleado({...formEmpleado, rol: e.target.value})}
+                      className="form-select"
+                      required
+                    >
+                      <option value="asesor">👨‍💼 Asesor de Ventas</option>
+                      <option value="ga">👔 Gerente de Área (GA)</option>
+                      <option value="gae">🎖️ Gerente de Área Especializado (GAE)</option>
+                      <option value="administrador">👑 Administrador</option>
+                      <option value="cajero">💰 Cajero</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-icon">🔒</span>
+                      Contraseña Temporal
+                    </label>
+                    <input
+                      type="password"
+                      value={formEmpleado.password}
+                      onChange={(e) => setFormEmpleado({...formEmpleado, password: e.target.value})}
+                      className="form-input"
+                      placeholder="Mínimo 8 caracteres"
+                      required
+                      minLength="8"
+                    />
+                    <small className="form-hint">El empleado deberá cambiar su contraseña en el primer acceso</small>
+                  </div>
+                </div>
+                
+                <div className="form-actions">
+                  <button type="submit" className="btn-submit">
+                    <span className="btn-icon">✅</span>
+                    Registrar Empleado
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    onClick={cerrarModalEmpleado}
+                  >
+                    <span className="btn-icon">✕</span>
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de detalle de factura */}
+      {detalleModal && (
+        <div className="modal-overlay" onClick={cerrarDetalle}>
+          <div className="modal-content factura-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">
+                <span className="modal-icon">📄</span>
+                <div>
+                  <h3>Detalle de Factura</h3>
+                  <p className="modal-subtitle">
+                    #{detalleModal.factura?.numero_factura || detalleModal.factura?.id}
+                  </p>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button className="modal-action" onClick={() => window.print()}>
+                  <span className="action-icon">🖨️</span>
+                  Imprimir
+                </button>
+                <button className="modal-close" onClick={cerrarDetalle} aria-label="Cerrar">
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            <div className="modal-body">
+              <div className="factura-info-grid">
+                <div className="info-group">
+                  <h4 className="info-title">Información del Cliente</h4>
+                  <div className="info-content">
+                    <div className="info-item">
+                      <span className="info-label">Razón Social:</span>
+                      <span className="info-value">{detalleModal.factura?.razon_social_receptor || '—'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">RIF:</span>
+                      <span className="info-value">{detalleModal.factura?.rif_receptor || '—'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Dirección:</span>
+                      <span className="info-value">{detalleModal.factura?.direccion_receptor || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="info-group">
+                  <h4 className="info-title">Datos de la Factura</h4>
+                  <div className="info-content">
+                    <div className="info-item">
+                      <span className="info-label">Fecha de Emisión:</span>
+                      <span className="info-value">{formatearFecha(detalleModal.factura?.fecha)}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Hora:</span>
+                      <span className="info-value">{formatearHora(detalleModal.factura?.fecha)}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Estado:</span>
+                      <span className="info-value estado">{detalleModal.factura?.estado || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Detalles de la factura */}
+              <div className="detalles-section">
+                <h4 className="section-title">Detalles de la Factura</h4>
+                <div className="table-responsive">
+                  <table className="detalles-table">
+                    <thead>
+                      <tr>
+                        <th>Descripción</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detalleModal.detalles?.map((detalle, index) => (
+                        <tr key={index}>
+                          <td className="descripcion">{detalle.descripcion}</td>
+                          <td className="cantidad">{detalle.cantidad}</td>
+                          <td className="precio">{formatearMoneda(detalle.precio_unitario)}</td>
+                          <td className="total">{formatearMoneda(detalle.monto_total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* Totales */}
+              <div className="totales-section">
+                <div className="totales-grid">
+                  <div className="total-item">
+                    <span className="total-label">Subtotal:</span>
+                    <span className="total-value">{formatearMoneda(detalleModal.factura?.subtotal || 0)}</span>
+                  </div>
+                  <div className="total-item">
+                    <span className="total-label">IVA (16%):</span>
+                    <span className="total-value">{formatearMoneda(detalleModal.factura?.iva || 0)}</span>
+                  </div>
+                  <div className="total-item total-general">
+                    <span className="total-label">Total General:</span>
+                    <span className="total-value">{formatearMoneda(detalleModal.factura?.total || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+} 

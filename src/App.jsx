@@ -13,6 +13,7 @@ import GestionProductos from './components/GestionProductos';
 import { useInitializeDB } from './hooks/useInitializeDB';
 import ListaFacturas from './components/ListaFacturas';
 import DetalleFactura from './components/DetalleFactura';
+import ReporteDiario from './components/ReporteDiario';
 import './App.css';
 
 // Componente para verificar autenticación
@@ -68,6 +69,7 @@ const router = createBrowserRouter([
       { path: "/registrar-empleado", element: <RegistrarEmpleado /> },
       { path: "/facturas", element: <ListaFacturas /> },
       { path: "/facturas/detalle/:id", element: <DetalleFactura /> },
+      { path: "/reporte-diario", element: <ReporteDiario /> },
     ],
   },
   {

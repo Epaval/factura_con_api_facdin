@@ -91,6 +91,16 @@
   background-color: #e9d5ff;
 }
 
+.navbar-button.reporte {
+  background-color: #f3e8ff;
+  border-color: #84f244;
+  color: #efa80f;
+}
+
+.navbar-button.reporte:hover {
+  background-color: #6e61f9;
+}
+
 .navbar-button.logout {
   background-color: #fee2e2;
   border-color: #fca5a5;
