@@ -170,12 +170,7 @@ export default function Login() {
 
   const handleForgotPassword = () => {
     setError('Funcionalidad de recuperación de contraseña en desarrollo.');
-  };
-
-  const handleDemoLogin = () => {
-    setFicha('demo');
-    setPassword('demo123');
-  };
+  };  
 
   // ✅ Mostrar loading mientras verifica la autenticación
   if (!checkedAuth) {
@@ -265,7 +260,7 @@ export default function Login() {
                 ref={fichaRef}
                 id="ficha"
                 type="text"
-                placeholder="Ej: FAC001"
+                placeholder="Ej: 0001"
                 value={ficha}
                 onChange={(e) => setFicha(e.target.value)}
                 className="login-input"
@@ -402,56 +397,13 @@ export default function Login() {
               </>
             )}
           </button>
-          
-          {/* Demo mode (solo en desarrollo) */}
-          {process.env.NODE_ENV === 'development' && (
-            <button
-              type="button"
-              className="demo-button"
-              onClick={handleDemoLogin}
-              disabled={loading || isLocked}
-            >
-              <span className="demo-icon">🎮</span>
-              Usar credenciales demo
-            </button>
-          )}
+        
+        
         </form>
         
-        {/* Footer del login */}
-        <div className="login-footer">
-          <div className="security-info">
-            <div className="security-item">
-              <span className="security-icon">🛡️</span>
-              <span className="security-text">Conexión segura SSL</span>
-            </div>
-            <div className="security-item">
-              <span className="security-icon">🔐</span>
-              <span className="security-text">Encriptación AES-256</span>
-            </div>
-            <div className="security-item">
-              <span className="security-icon">👁️</span>
-              <span className="security-text">Tus datos están protegidos</span>
-            </div>
-          </div>
-          
-          <div className="system-info">
-            <p className="version">v2.0.1 • Último acceso: {new Date().toLocaleDateString()}</p>
-            <p className="support">
-              ¿Necesitas ayuda? <button className="support-button">Contactar soporte</button>
-            </p>
-          </div>
-        </div>
-      </div>
+        
+      </div>      
       
-      {/* Notificaciones del sistema */}
-      <div className="system-notifications">
-        <div className="notification">
-          <span className="notification-icon">ℹ️</span>
-          <span className="notification-text">
-            Sistema optimizado para Chrome 90+ y Firefox 88+
-          </span>
-        </div>
-      </div>
     </div>
   );
 } 

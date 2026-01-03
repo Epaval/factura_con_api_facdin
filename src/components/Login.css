@@ -172,7 +172,7 @@
 }
 
 .app-subtitle {
-  color: var(--gray-medium);
+  color: var(--gray-dark);
   font-size: 0.9rem;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -190,7 +190,7 @@
 }
 
 .welcome-subtitle {
-  color: var(--gray-medium);
+  color: var(--gray-dark);
   font-size: 1rem;
   margin: 0;
 }
