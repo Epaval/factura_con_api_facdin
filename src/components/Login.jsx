@@ -211,7 +211,7 @@ export default function Login() {
           </div>
           
           <div className="welcome-message">
-            <h2 className="welcome-title">¡Bienvenido de vuelta!</h2>
+            <h2 className="welcome-title">¡Bienvenido!</h2>
             <p className="welcome-subtitle">Ingresa tus credenciales para acceder al sistema</p>
           </div>
         </div>
